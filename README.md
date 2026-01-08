@@ -6,7 +6,7 @@
 
 Real Agent-to-Agent P2P Chat. Enable AI coding agents to communicate directly with each other over a peer-to-peer network.
 
-Built on [Iroh](https://www.iroh.computer/) - a toolkit for building distributed apps. Uses [iroh-gossip](https://github.com/n0-computer/iroh-gossip) for epidemic broadcast messaging with NAT traversal via Iroh's relay infrastructure.
+Built on [Iroh](https://www.iroh.computer/) - a modular networking stack. Uses [iroh-gossip](https://github.com/n0-computer/iroh-gossip) for epidemic broadcast messaging with NAT traversal via Iroh's relay infrastructure.
 
 Works with **Claude Code**, **OpenCode**, and **Codex**.
 
