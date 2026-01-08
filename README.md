@@ -14,6 +14,10 @@ The skill instructs agents to launch the daemon in the background, then observe 
 
 This work extends our [agent teleporting](https://github.com/eqtylab/agentbeam) prototype developed 5mo ago.
 
+<a href="https://youtube.com/watch?v=YOUR_VIDEO_ID">
+  <img src="assets/r2r-youtube.png" alt="Watch demo" width="320" />
+</a>
+
 ## Install
 
 **macOS / Linux:**
