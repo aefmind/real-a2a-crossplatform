@@ -8,6 +8,7 @@ CLAUDE_COUNT=0
 OPENCODE_COUNT=0
 CODEX_COUNT=0
 ROOM_IDENTITY="swarm-host"
+WORKSPACE_BASE="${SWARM_WORKSPACE:-$HOME/swarm-workspace}"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -28,6 +29,10 @@ while [[ $# -gt 0 ]]; do
             ROOM_IDENTITY="$2"
             shift 2
             ;;
+        --workspace)
+            WORKSPACE_BASE="$2"
+            shift 2
+            ;;
         -h|--help)
             echo "Launch a swarm of AI agents into a P2P chat room"
             echo ""
@@ -38,11 +43,13 @@ while [[ $# -gt 0 ]]; do
             echo "  --opencode N    Launch N OpenCode instances"
             echo "  --codex N       Launch N Codex instances"
             echo "  --identity NAME Room host identity (default: swarm-host)"
+            echo "  --workspace DIR Base directory for agent workspaces (default: ~/swarm-workspace)"
             echo ""
             echo "Examples:"
             echo "  $0 --claude 3 --opencode 2"
             echo "  $0 --opencode 5"
             echo "  $0 --claude 2 --opencode 2 --codex 1"
+            echo "  $0 --claude 5 --workspace /tmp/my-swarm"
             exit 0
             ;;
         *)
@@ -68,6 +75,21 @@ echo "Agents to launch:"
 [ "$CLAUDE_COUNT" -gt 0 ] && echo "  - Claude Code: $CLAUDE_COUNT"
 [ "$OPENCODE_COUNT" -gt 0 ] && echo "  - OpenCode: $OPENCODE_COUNT"
 [ "$CODEX_COUNT" -gt 0 ] && echo "  - Codex: $CODEX_COUNT"
+echo ""
+echo "Workspace: $WORKSPACE_BASE"
+echo ""
+
+# Create workspace directories
+echo "Creating agent workspaces..."
+for i in $(seq 1 $CLAUDE_COUNT); do
+    mkdir -p "$WORKSPACE_BASE/claude-$i"
+done
+for i in $(seq 1 $OPENCODE_COUNT); do
+    mkdir -p "$WORKSPACE_BASE/opencode-$i"
+done
+for i in $(seq 1 $CODEX_COUNT); do
+    mkdir -p "$WORKSPACE_BASE/codex-$i"
+done
 echo ""
 
 # Check if real-a2a is installed
@@ -164,10 +186,10 @@ echo ""
 
 # Launch Claude Code instances
 for i in $(seq 1 $CLAUDE_COUNT); do
-    IDENTITY="claude-$i"
-    echo "Launching Claude Code ($IDENTITY)..."
+    AGENT_DIR="$WORKSPACE_BASE/claude-$i"
+    echo "Launching Claude Code (claude-$i) in $AGENT_DIR..."
 
-    CMD="claude \"$CHAT_INSTRUCTION\" --dangerously-skip-permissions"
+    CMD="cd '$AGENT_DIR' && claude \"$CHAT_INSTRUCTION\" --dangerously-skip-permissions"
     $LAUNCH_FN "Claude-$i" "$CMD"
 
     sleep 2  # Stagger launches
@@ -175,10 +197,10 @@ done
 
 # Launch OpenCode instances
 for i in $(seq 1 $OPENCODE_COUNT); do
-    IDENTITY="opencode-$i"
-    echo "Launching OpenCode ($IDENTITY)..."
+    AGENT_DIR="$WORKSPACE_BASE/opencode-$i"
+    echo "Launching OpenCode (opencode-$i) in $AGENT_DIR..."
 
-    CMD="opencode --prompt \"$CHAT_INSTRUCTION\""
+    CMD="cd '$AGENT_DIR' && opencode --prompt \"$CHAT_INSTRUCTION\""
     $LAUNCH_FN "OpenCode-$i" "$CMD"
 
     sleep 2
@@ -186,10 +208,10 @@ done
 
 # Launch Codex instances
 for i in $(seq 1 $CODEX_COUNT); do
-    IDENTITY="codex-$i"
-    echo "Launching Codex ($IDENTITY)..."
+    AGENT_DIR="$WORKSPACE_BASE/codex-$i"
+    echo "Launching Codex (codex-$i) in $AGENT_DIR..."
 
-    CMD="codex exec \"$CHAT_INSTRUCTION\" --yolo"
+    CMD="cd '$AGENT_DIR' && codex exec \"$CHAT_INSTRUCTION\" --yolo"
     $LAUNCH_FN "Codex-$i" "$CMD"
 
     sleep 2
@@ -202,6 +224,7 @@ echo "=========================================="
 echo ""
 echo "Room ticket: $TICKET"
 echo "Host daemon PID: $DAEMON_PID"
+echo "Workspace: $WORKSPACE_BASE"
 echo ""
 echo "To join the chat yourself:"
 echo "  real-a2a daemon --identity human --join $TICKET"
@@ -219,6 +242,7 @@ cat > "$INFO_FILE" <<EOF
 TICKET=$TICKET
 DAEMON_PID=$DAEMON_PID
 ROOM_IDENTITY=$ROOM_IDENTITY
+WORKSPACE_BASE=$WORKSPACE_BASE
 CLAUDE_COUNT=$CLAUDE_COUNT
 OPENCODE_COUNT=$OPENCODE_COUNT
 CODEX_COUNT=$CODEX_COUNT
