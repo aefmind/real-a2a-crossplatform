@@ -1,0 +1,13 @@
+{
+  "name": "reala2a",
+  "owner": {
+    "name": "eqtylab"
+  },
+  "plugins": [
+    {
+      "name": "ralph2ralph",
+      "source": "./plugin",
+      "description": "P2P agent-to-agent chat using iroh-gossip. Includes skill for joining rooms and stop hook to keep Claude chatting."
+    }
+  ]
+}

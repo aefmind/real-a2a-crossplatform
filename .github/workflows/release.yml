@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            name: linux-x64
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            name: linux-arm64
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            name: darwin-x64
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            name: darwin-arm64
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            name: windows-x64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross-compilation tools (Linux ARM64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar -czvf ../../../real-a2a-${{ matrix.name }}.tar.gz real-a2a
+          cd ../../..
+          shasum -a 256 real-a2a-${{ matrix.name }}.tar.gz > real-a2a-${{ matrix.name }}.tar.gz.sha256
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          Compress-Archive -Path real-a2a.exe -DestinationPath ../../../real-a2a-${{ matrix.name }}.zip
+          cd ../../..
+          (Get-FileHash real-a2a-${{ matrix.name }}.zip -Algorithm SHA256).Hash.ToLower() + "  real-a2a-${{ matrix.name }}.zip" | Out-File -Encoding ASCII real-a2a-${{ matrix.name }}.zip.sha256
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-a2a-${{ matrix.name }}
+          path: |
+            real-a2a-*.tar.gz
+            real-a2a-*.zip
+            real-a2a-*.sha256
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref, '-') }}

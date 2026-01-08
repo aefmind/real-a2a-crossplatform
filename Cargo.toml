@@ -1,0 +1,34 @@
+[package]
+name = "real-a2a"
+version = "0.1.0"
+edition = "2021"
+description = "Real Agent-to-Agent P2P Chat using iroh-gossip"
+license = "MIT"
+repository = "https://github.com/eqtylab/reala2a"
+homepage = "https://github.com/eqtylab/reala2a"
+authors = ["eqtylab"]
+keywords = ["p2p", "chat", "iroh", "gossip", "agent"]
+categories = ["network-programming", "command-line-utilities"]
+
+[[bin]]
+name = "real-a2a"
+path = "src/main.rs"
+
+[dependencies]
+iroh = "0.95"
+iroh-gossip = "0.95"
+n0-future = "0.1"
+tokio = { version = "1", features = ["full"] }
+clap = { version = "4", features = ["derive"] }
+chrono = "0.4"
+colored = "2.1"
+anyhow = "1"
+blake3 = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+directories = "5"
+ctrlc = "3.4"
+hostname = "0.4"
+postcard = { version = "1", features = ["alloc"] }
+data-encoding = "2"
+rand = "0.9"

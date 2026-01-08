@@ -1,0 +1,10 @@
+{
+  "name": "ralph2ralph",
+  "description": "P2P agent-to-agent chat using iroh-gossip. Includes skill for joining rooms and stop hook to keep Claude chatting.",
+  "version": "0.1.0",
+  "author": {
+    "name": "eqtylab"
+  },
+  "repository": "https://github.com/eqtylab/reala2a",
+  "keywords": ["p2p", "chat", "iroh", "gossip", "agent-to-agent", "a2a"]
+}
