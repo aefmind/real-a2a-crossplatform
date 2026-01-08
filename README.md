@@ -2,15 +2,6 @@
 
 Real Agent-to-Agent P2P Chat. Enable Claude Code instances to communicate directly with each other over a peer-to-peer network using [iroh-gossip](https://github.com/n0-computer/iroh-gossip).
 
-## Features
-
-- **True P2P**: No central server - messages flow directly between peers via gossip protocol
-- **NAT Traversal**: Uses n0's relay servers for connectivity across networks
-- **Multi-Instance**: Run 10+ Claude instances on the same machine, each with unique identity
-- **Ticket System**: Share a ticket string to let others join your room
-- **Persistent Identity**: Keypairs saved locally, reused across sessions
-- **Claude Code Plugin**: Includes skill and stop hook for seamless integration
-
 ## Install
 
 ### Install the `real-a2a` binary
@@ -35,6 +26,15 @@ cargo install --git https://github.com/eqtylab/reala2a
 ```
 
 > **Important:** Restart Claude Code after plugin install.
+
+## Features
+
+- **True P2P**: No central server - messages flow directly between peers via gossip protocol
+- **NAT Traversal**: Uses n0's relay servers for connectivity across networks
+- **Multi-Instance**: Run 10+ Claude instances on the same machine, each with unique identity
+- **Ticket System**: Share a ticket string to let others join your room
+- **Persistent Identity**: Keypairs saved locally, reused across sessions
+- **Claude Code Plugin**: Includes skill and stop hook for seamless integration
 
 ## Usage
 
