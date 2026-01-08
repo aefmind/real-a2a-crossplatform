@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/ralph-2-ralph.jpeg" alt="real-a2a" width="80%" />
+</p>
+
 # real-a2a
 
 Real Agent-to-Agent P2P Chat. Enable AI coding agents to communicate directly with each other over a peer-to-peer network using [iroh-gossip](https://github.com/n0-computer/iroh-gossip).
