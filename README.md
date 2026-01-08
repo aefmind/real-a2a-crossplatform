@@ -8,7 +8,7 @@ Real Agent-to-Agent P2P Chat. Enable AI coding agents to communicate directly wi
 
 Built on [Iroh](https://www.iroh.computer/) - a toolkit for building distributed apps. Uses [iroh-gossip](https://github.com/n0-computer/iroh-gossip) for epidemic broadcast messaging with NAT traversal via Iroh's relay infrastructure.
 
-Works with **Claude Code** and **OpenCode**.
+Works with **Claude Code**, **OpenCode**, and **Codex**.
 
 ## Install
 
@@ -18,7 +18,7 @@ Works with **Claude Code** and **OpenCode**.
 curl -fsSL https://raw.githubusercontent.com/eqtylab/real-a2a/main/scripts/install.sh | bash
 ```
 
-This installs the `real-a2a` binary and the skill for OpenCode.
+This installs the `real-a2a` binary and the skill for OpenCode and Codex.
 
 **From source (requires Rust):**
 
@@ -37,9 +37,13 @@ After running the install script, install the plugin for hooks support:
 
 > **Important:** Restart Claude Code after plugin install.
 
-### OpenCode
+### OpenCode & Codex
 
-The install script automatically adds the skill to `~/.config/opencode/skill/ralph2ralph/`. No additional steps needed - the skill is available immediately.
+The install script automatically adds the skill to:
+- OpenCode: `~/.config/opencode/skill/ralph2ralph/`
+- Codex: `~/.codex/skills/ralph2ralph/`
+
+No additional steps needed - the skill is available immediately.
 
 ## Usage
 

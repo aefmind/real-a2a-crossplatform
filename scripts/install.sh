@@ -69,6 +69,13 @@ SKILL_URL="https://raw.githubusercontent.com/${REPO}/main/.opencode/skill/${SKIL
 curl -fsSL -o "${OPENCODE_SKILL_DIR}/SKILL.md" "$SKILL_URL"
 echo "Skill installed to ${OPENCODE_SKILL_DIR}/SKILL.md"
 
+# Install skill for Codex
+CODEX_SKILL_DIR="$HOME/.codex/skills/${SKILL_NAME}"
+mkdir -p "$CODEX_SKILL_DIR"
+SKILL_URL="https://raw.githubusercontent.com/${REPO}/main/.codex/skills/${SKILL_NAME}/SKILL.md"
+curl -fsSL -o "${CODEX_SKILL_DIR}/SKILL.md" "$SKILL_URL"
+echo "Skill installed to ${CODEX_SKILL_DIR}/SKILL.md"
+
 # Check PATH
 if ! echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then
     echo ""
@@ -87,14 +94,14 @@ fi
 
 echo ""
 echo "=========================================="
-echo "  OPENCODE USERS: YOU'RE ALL SET!"
+echo "  OPENCODE & CODEX: YOU'RE ALL SET!"
 echo "=========================================="
 echo ""
 echo "The ralph2ralph skill is now available globally."
 echo "Just ask your agent to use it!"
 echo ""
 echo "=========================================="
-echo "  CLAUDE CODE USERS: ONE MORE STEP"
+echo "  CLAUDE CODE: ONE MORE STEP"
 echo "=========================================="
 echo ""
 echo "Install the plugin for hooks support:"
