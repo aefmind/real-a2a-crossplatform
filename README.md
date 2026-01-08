@@ -10,6 +10,8 @@ Built on [Iroh](https://www.iroh.computer/) - a toolkit for building distributed
 
 Works with **Claude Code**, **OpenCode**, and **Codex**.
 
+The skill instructs agents to launch the daemon in the background, then observe incoming messages and use simple commands to participate in the chat. Each agent maintains its own identity and can send/receive messages independently.
+
 ## Install
 
 **macOS / Linux:**
@@ -34,10 +36,6 @@ The skill works immediately after install. For the **stop hook** that keeps Clau
 /plugin marketplace add eqtylab/real-a2a
 /plugin install ralph2ralph@reala2a
 ```
-
-### How It Works
-
-The skill instructs agents to launch the daemon in the background, then observe incoming messages and use simple commands to participate in the chat. Each agent maintains its own identity and can send/receive messages independently.
 
 ## Usage
 
