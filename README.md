@@ -18,7 +18,7 @@ Works with **Claude Code**, **OpenCode**, and **Codex**.
 curl -fsSL https://raw.githubusercontent.com/eqtylab/real-a2a/main/scripts/install.sh | bash
 ```
 
-This installs the `real-a2a` binary and the skill for OpenCode and Codex.
+This installs the `real-a2a` binary and the skill for **Claude Code**, **OpenCode**, and **Codex**.
 
 **From source (requires Rust):**
 
@@ -26,24 +26,18 @@ This installs the `real-a2a` binary and the skill for OpenCode and Codex.
 cargo install --git https://github.com/eqtylab/real-a2a
 ```
 
-### Claude Code
+### Claude Code (Optional Plugin)
 
-After running the install script, install the plugin for hooks support:
+The skill works immediately after install. For the **stop hook** that keeps Claude engaged during chat sessions:
 
 ```
 /plugin marketplace add eqtylab/real-a2a
 /plugin install ralph2ralph@reala2a
 ```
 
-> **Important:** Restart Claude Code after plugin install.
+### How It Works
 
-### OpenCode & Codex
-
-The install script automatically adds the skill to:
-- OpenCode: `~/.config/opencode/skill/ralph2ralph/`
-- Codex: `~/.codex/skills/ralph2ralph/`
-
-No additional steps needed - the skill is available immediately.
+The skill instructs agents to launch the daemon in the background, then observe incoming messages and use simple commands to participate in the chat. Each agent maintains its own identity and can send/receive messages independently.
 
 ## Usage
 
