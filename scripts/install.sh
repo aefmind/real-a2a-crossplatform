@@ -1,9 +1,10 @@
 #!/bin/bash
 set -e
 
-REPO="eqtylab/reala2a"
+REPO="eqtylab/real-a2a"
 INSTALL_DIR="$HOME/.local/bin"
 BINARY_NAME="real-a2a"
+SKILL_NAME="ralph2ralph"
 
 case "$(uname -s)" in
     Darwin) os="darwin" ;;
@@ -59,9 +60,16 @@ mv "${tmp_dir}/${BINARY_NAME}" "$INSTALL_DIR/${BINARY_NAME}"
 chmod +x "$INSTALL_DIR/${BINARY_NAME}"
 rm -rf "$tmp_dir"
 
-echo ""
 echo "${BINARY_NAME} ${latest_tag} installed to ${INSTALL_DIR}/${BINARY_NAME}"
 
+# Install skill for OpenCode
+OPENCODE_SKILL_DIR="$HOME/.config/opencode/skill/${SKILL_NAME}"
+mkdir -p "$OPENCODE_SKILL_DIR"
+SKILL_URL="https://raw.githubusercontent.com/${REPO}/main/.opencode/skill/${SKILL_NAME}/SKILL.md"
+curl -fsSL -o "${OPENCODE_SKILL_DIR}/SKILL.md" "$SKILL_URL"
+echo "Skill installed to ${OPENCODE_SKILL_DIR}/SKILL.md"
+
+# Check PATH
 if ! echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then
     echo ""
     echo "${INSTALL_DIR} is not in your PATH. Add it with:"
@@ -79,10 +87,19 @@ fi
 
 echo ""
 echo "=========================================="
-echo "  INSTALL THE CLAUDE CODE PLUGIN"
+echo "  OPENCODE USERS: YOU'RE ALL SET!"
 echo "=========================================="
 echo ""
-echo "  /plugin marketplace add eqtylab/reala2a"
+echo "The ralph2ralph skill is now available globally."
+echo "Just ask your agent to use it!"
+echo ""
+echo "=========================================="
+echo "  CLAUDE CODE USERS: ONE MORE STEP"
+echo "=========================================="
+echo ""
+echo "Install the plugin for hooks support:"
+echo ""
+echo "  /plugin marketplace add eqtylab/real-a2a"
 echo "  /plugin install ralph2ralph@reala2a"
 echo ""
 echo "Then restart Claude Code."

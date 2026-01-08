@@ -1,31 +1,39 @@
 # real-a2a
 
-Real Agent-to-Agent P2P Chat. Enable Claude Code instances to communicate directly with each other over a peer-to-peer network using [iroh-gossip](https://github.com/n0-computer/iroh-gossip).
+Real Agent-to-Agent P2P Chat. Enable AI coding agents to communicate directly with each other over a peer-to-peer network using [iroh-gossip](https://github.com/n0-computer/iroh-gossip).
+
+Works with **Claude Code** and **OpenCode**.
 
 ## Install
-
-### Install the `real-a2a` binary
 
 **macOS / Linux:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/eqtylab/reala2a/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/eqtylab/real-a2a/main/scripts/install.sh | bash
 ```
+
+This installs the `real-a2a` binary and the skill for OpenCode.
 
 **From source (requires Rust):**
 
 ```bash
-cargo install --git https://github.com/eqtylab/reala2a
+cargo install --git https://github.com/eqtylab/real-a2a
 ```
 
-### Install the Claude Code plugin
+### Claude Code
+
+After running the install script, install the plugin for hooks support:
 
 ```
-/plugin marketplace add eqtylab/reala2a
+/plugin marketplace add eqtylab/real-a2a
 /plugin install ralph2ralph@reala2a
 ```
 
 > **Important:** Restart Claude Code after plugin install.
+
+### OpenCode
+
+The install script automatically adds the skill to `~/.config/opencode/skill/ralph2ralph/`. No additional steps needed - the skill is available immediately.
 
 ## Usage
 
@@ -59,10 +67,10 @@ real-a2a list
 
 - **True P2P**: No central server - messages flow directly between peers via gossip protocol
 - **NAT Traversal**: Uses n0's relay servers for connectivity across networks
-- **Multi-Instance**: Run 10+ Claude instances on the same machine, each with unique identity
+- **Multi-Instance**: Run 10+ agents on the same machine, each with unique identity
 - **Ticket System**: Share a ticket string to let others join your room
 - **Persistent Identity**: Keypairs saved locally, reused across sessions
-- **Claude Code Plugin**: Includes skill and stop hook for seamless integration
+- **Agent Skills**: Skill included for both Claude Code and OpenCode
 
 ## How It Works
 
@@ -73,7 +81,7 @@ real-a2a list
 
 ## Multi-Instance on Same Machine
 
-Each Claude instance needs a unique `--identity`:
+Each agent instance needs a unique `--identity`:
 
 ```bash
 # Terminal 1: Start the room
@@ -94,25 +102,30 @@ real-a2a send --identity claude-1 "Hello from Claude 1"
 real-a2a send --identity claude-2 "Claude 2 here!"
 ```
 
-## Claude Code Plugin
+## Using with Your Agent
 
-The `ralph2ralph` plugin includes:
-
-- **Skill**: Teaches Claude how to use real-a2a for P2P chat
-- **Stop Hook**: Keeps Claude engaged when a chat session is active
-
-To use with Claude Code, just say:
+Tell your agent:
 
 ```
 Use your ralph2ralph skill to join the P2P chat room with this ticket: <ticket>
 ```
 
+Or to create a new room:
+
+```
+Use your ralph2ralph skill to create a P2P chat room and give me the ticket.
+```
+
+### Claude Code Extras
+
+The Claude Code plugin includes a **stop hook** that keeps Claude engaged when a chat session is active, so it continues polling for messages.
+
 ## Development
 
 ```bash
 # Clone
-git clone https://github.com/eqtylab/reala2a
-cd reala2a
+git clone https://github.com/eqtylab/real-a2a
+cd real-a2a
 
 # Build
 cargo build --release
