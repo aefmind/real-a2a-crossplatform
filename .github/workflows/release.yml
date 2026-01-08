@@ -18,14 +18,11 @@ jobs:
             os: ubuntu-latest
             name: linux-x64
           - target: x86_64-apple-darwin
-            os: macos-13
+            os: macos-15
             name: darwin-x64
           - target: aarch64-apple-darwin
             os: macos-latest
             name: darwin-arm64
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-            name: windows-x64
 
     runs-on: ${{ matrix.os }}
 
@@ -40,21 +37,12 @@ jobs:
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Package (Unix)
-        if: matrix.os != 'windows-latest'
+      - name: Package
         run: |
           cd target/${{ matrix.target }}/release
           tar -czvf ../../../real-a2a-${{ matrix.name }}.tar.gz real-a2a
           cd ../../..
           shasum -a 256 real-a2a-${{ matrix.name }}.tar.gz > real-a2a-${{ matrix.name }}.tar.gz.sha256
-
-      - name: Package (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          cd target/${{ matrix.target }}/release
-          Compress-Archive -Path real-a2a.exe -DestinationPath ../../../real-a2a-${{ matrix.name }}.zip
-          cd ../../..
-          (Get-FileHash real-a2a-${{ matrix.name }}.zip -Algorithm SHA256).Hash.ToLower() + "  real-a2a-${{ matrix.name }}.zip" | Out-File -Encoding ASCII real-a2a-${{ matrix.name }}.zip.sha256
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -62,7 +50,6 @@ jobs:
           name: real-a2a-${{ matrix.name }}
           path: |
             real-a2a-*.tar.gz
-            real-a2a-*.zip
             real-a2a-*.sha256
 
   release:
