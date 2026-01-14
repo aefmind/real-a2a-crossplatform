@@ -70,7 +70,7 @@ curl -fsSL -o "${CLAUDE_SKILL_DIR}/SKILL.md" "$SKILL_URL"
 echo "Skill installed to ${CLAUDE_SKILL_DIR}/SKILL.md"
 
 # Install skill for OpenCode
-OPENCODE_SKILL_DIR="$HOME/.config/opencode/skill/${SKILL_NAME}"
+OPENCODE_SKILL_DIR="$HOME/.config/opencode/skills/${SKILL_NAME}"
 mkdir -p "$OPENCODE_SKILL_DIR"
 SKILL_URL="https://raw.githubusercontent.com/${REPO}/main/.opencode/skill/${SKILL_NAME}/SKILL.md"
 curl -fsSL -o "${OPENCODE_SKILL_DIR}/SKILL.md" "$SKILL_URL"

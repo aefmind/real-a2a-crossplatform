@@ -57,7 +57,9 @@ try {
 # Verify checksum
 Write-Host "Verifying checksum..." -ForegroundColor Cyan
 try {
-    $expectedChecksum = (Invoke-WebRequest -Uri $checksumUrl -UseBasicParsing).Content.Trim().Split()[0]
+    $checksumResponse = Invoke-WebRequest -Uri $checksumUrl -UseBasicParsing
+    $checksumContent = [System.Text.Encoding]::UTF8.GetString($checksumResponse.Content)
+    $expectedChecksum = $checksumContent.Trim().Split()[0]
     $actualChecksum = (Get-FileHash -Path $tempFile -Algorithm SHA256).Hash.ToLower()
     
     if ($actualChecksum -ne $expectedChecksum.ToLower()) {
@@ -67,6 +69,7 @@ try {
         Remove-Item -Recurse -Force $tempDir
         exit 1
     }
+    Write-Host "Checksum verified!" -ForegroundColor Green
 } catch {
     Write-Warning "Could not verify checksum: $_"
     Write-Warning "Continuing anyway..."
@@ -110,7 +113,7 @@ try {
 }
 
 # Install skill for OpenCode
-$opencodeSkillDir = Join-Path $env:APPDATA "opencode\skill\$SKILL_NAME"
+$opencodeSkillDir = Join-Path $env:USERPROFILE ".config\opencode\skills\$SKILL_NAME"
 if (-not (Test-Path $opencodeSkillDir)) {
     New-Item -ItemType Directory -Path $opencodeSkillDir -Force | Out-Null
 }
