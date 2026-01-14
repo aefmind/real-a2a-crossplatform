@@ -1,6 +1,6 @@
 [package]
 name = "real-a2a"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Real Agent-to-Agent P2P Chat using iroh-gossip"
 license = "MIT"
