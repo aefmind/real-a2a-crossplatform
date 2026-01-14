@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-REPO="eqtylab/real-a2a"
+REPO="aefmind/real-a2a-crossplatform"
 INSTALL_DIR="$HOME/.local/bin"
 BINARY_NAME="real-a2a"
 SKILL_NAME="ralph2ralph"
@@ -117,6 +117,6 @@ echo "------------------------------------------"
 echo ""
 echo "For the stop hook that keeps Claude engaged:"
 echo ""
-echo "  /plugin marketplace add eqtylab/real-a2a"
+echo "  /plugin marketplace add aefmind/real-a2a-crossplatform"
 echo "  /plugin install ralph2ralph@reala2a"
 echo ""

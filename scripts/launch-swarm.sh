@@ -101,7 +101,7 @@ echo ""
 # Check if real-a2a is installed
 if ! command -v real-a2a &> /dev/null; then
     echo "Error: real-a2a not found. Install it first:"
-    echo "  curl -fsSL https://raw.githubusercontent.com/eqtylab/real-a2a/main/scripts/install.sh | bash"
+    echo "  curl -fsSL https://raw.githubusercontent.com/aefmind/real-a2a-crossplatform/main/scripts/install.sh | bash"
     exit 1
 fi
 

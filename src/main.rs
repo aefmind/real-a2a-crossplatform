@@ -16,7 +16,13 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+
+// Cross-platform IPC imports
+#[cfg(unix)]
 use tokio::net::{UnixListener, UnixStream};
+
+#[cfg(windows)]
+use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeServer, ServerOptions};
 
 const DEFAULT_ROOM: &str = "claude-a2a-global";
 
@@ -123,8 +129,39 @@ fn get_identities_dir() -> Result<PathBuf> {
     Ok(dir)
 }
 
-fn get_socket_path(identity: &str) -> Result<PathBuf> {
-    Ok(get_data_dir()?.join(format!("daemon-{}.sock", identity)))
+/// Get the IPC path for the daemon
+/// On Unix: Returns a socket file path like `/path/to/data/daemon-name.sock`
+/// On Windows: Returns a named pipe path like `\\.\pipe\real-a2a-daemon-name`
+#[cfg(unix)]
+fn get_ipc_path(identity: &str) -> Result<String> {
+    Ok(get_data_dir()?.join(format!("daemon-{}.sock", identity))
+        .to_string_lossy()
+        .to_string())
+}
+
+#[cfg(windows)]
+fn get_ipc_path(identity: &str) -> Result<String> {
+    Ok(format!(r"\\.\pipe\real-a2a-daemon-{}", identity))
+}
+
+/// Get the marker file path to indicate daemon is running (used on Windows)
+fn get_marker_path(identity: &str) -> Result<PathBuf> {
+    Ok(get_data_dir()?.join(format!("daemon-{}.running", identity)))
+}
+
+/// Check if a daemon is running for a specific identity
+fn is_daemon_running(identity: &str) -> bool {
+    #[cfg(unix)]
+    {
+        let path = get_ipc_path(identity).ok();
+        path.map(|p| std::path::Path::new(&p).exists()).unwrap_or(false)
+    }
+    #[cfg(windows)]
+    {
+        get_marker_path(identity)
+            .map(|p| p.exists())
+            .unwrap_or(false)
+    }
 }
 
 fn generate_memorable_name() -> String {
@@ -219,6 +256,218 @@ fn print_message(from_name: &str, from_id: &str, content: &str, is_self: bool) {
     }
 }
 
+// ============================================================================
+// Unix-specific IPC implementation
+// ============================================================================
+
+#[cfg(unix)]
+async fn start_ipc_listener(
+    ipc_path: &str,
+    sender: Arc<iroh_gossip::api::GossipSender>,
+    identity_name: String,
+    node_id: PublicKey,
+) -> Result<()> {
+    let socket_path = std::path::PathBuf::from(ipc_path);
+    if socket_path.exists() {
+        tokio::fs::remove_file(&socket_path).await?;
+    }
+
+    let listener = UnixListener::bind(&socket_path)?;
+    print_system(&format!("listening on socket for '{}'", identity_name));
+
+    tokio::spawn(async move {
+        loop {
+            if let Ok((stream, _)) = listener.accept().await {
+                let sender = sender.clone();
+                let name = identity_name.clone();
+                let id = node_id;
+
+                tokio::spawn(async move {
+                    if let Err(e) = handle_unix_connection(stream, sender, &name, &id).await {
+                        eprintln!("Socket error: {}", e);
+                    }
+                });
+            }
+        }
+    });
+
+    Ok(())
+}
+
+#[cfg(unix)]
+async fn handle_unix_connection(
+    stream: UnixStream,
+    sender: Arc<iroh_gossip::api::GossipSender>,
+    identity_name: &str,
+    node_id: &PublicKey,
+) -> Result<()> {
+    let mut reader = BufReader::new(stream);
+    let mut line = String::new();
+
+    while reader.read_line(&mut line).await? > 0 {
+        let message = line.trim().to_string();
+        if !message.is_empty() {
+            let chat_msg = ChatMessage {
+                from_name: identity_name.to_string(),
+                from_id: node_id.to_string(),
+                content: message.clone(),
+                timestamp: chrono::Utc::now().timestamp(),
+            };
+
+            let json = serde_json::to_vec(&chat_msg)?;
+            sender.broadcast(json.into()).await?;
+
+            print_message(identity_name, &node_id.to_string(), &message, true);
+        }
+        line.clear();
+    }
+
+    Ok(())
+}
+
+#[cfg(unix)]
+async fn cleanup_ipc(ipc_path: &str) {
+    let _ = tokio::fs::remove_file(ipc_path).await;
+}
+
+#[cfg(unix)]
+async fn send_via_ipc(ipc_path: &str, message: &str) -> Result<()> {
+    let mut stream = UnixStream::connect(ipc_path)
+        .await
+        .context("Failed to connect to daemon")?;
+
+    stream.write_all(message.as_bytes()).await?;
+    stream.write_all(b"\n").await?;
+    stream.flush().await?;
+
+    Ok(())
+}
+
+// ============================================================================
+// Windows-specific IPC implementation using Named Pipes
+// ============================================================================
+
+#[cfg(windows)]
+async fn start_ipc_listener(
+    ipc_path: &str,
+    sender: Arc<iroh_gossip::api::GossipSender>,
+    identity_name: String,
+    node_id: PublicKey,
+) -> Result<()> {
+    let pipe_name = ipc_path.to_string();
+    
+    // Create marker file to indicate daemon is running
+    let marker_path = get_marker_path(&identity_name)?;
+    std::fs::write(&marker_path, "running")?;
+    
+    print_system(&format!("listening on named pipe for '{}'", identity_name));
+
+    // Track if this is the first instance
+    let first_instance = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
+
+    tokio::spawn(async move {
+        loop {
+            let is_first = first_instance.load(std::sync::atomic::Ordering::SeqCst);
+            
+            // Create a new pipe server instance for each connection
+            let server = match ServerOptions::new()
+                .first_pipe_instance(is_first)
+                .create(&pipe_name)
+            {
+                Ok(s) => {
+                    // After first successful create, no longer first instance
+                    first_instance.store(false, std::sync::atomic::Ordering::SeqCst);
+                    s
+                }
+                Err(e) => {
+                    eprintln!("Failed to create named pipe: {}", e);
+                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                    continue;
+                }
+            };
+
+            // Wait for a client to connect
+            if let Err(e) = server.connect().await {
+                eprintln!("Pipe connect error: {}", e);
+                continue;
+            }
+
+            let sender = sender.clone();
+            let name = identity_name.clone();
+            let id = node_id;
+
+            tokio::spawn(async move {
+                if let Err(e) = handle_windows_connection(server, sender, &name, &id).await {
+                    eprintln!("Pipe error: {}", e);
+                }
+            });
+        }
+    });
+
+    Ok(())
+}
+
+#[cfg(windows)]
+async fn handle_windows_connection(
+    pipe: NamedPipeServer,
+    sender: Arc<iroh_gossip::api::GossipSender>,
+    identity_name: &str,
+    node_id: &PublicKey,
+) -> Result<()> {
+    let mut reader = BufReader::new(pipe);
+    let mut line = String::new();
+
+    while reader.read_line(&mut line).await? > 0 {
+        let message = line.trim().to_string();
+        if !message.is_empty() {
+            let chat_msg = ChatMessage {
+                from_name: identity_name.to_string(),
+                from_id: node_id.to_string(),
+                content: message.clone(),
+                timestamp: chrono::Utc::now().timestamp(),
+            };
+
+            let json = serde_json::to_vec(&chat_msg)?;
+            sender.broadcast(json.into()).await?;
+
+            print_message(identity_name, &node_id.to_string(), &message, true);
+        }
+        line.clear();
+    }
+
+    Ok(())
+}
+
+#[cfg(windows)]
+async fn cleanup_ipc(identity: &str) {
+    // Remove the marker file
+    if let Ok(marker_path) = get_marker_path(identity) {
+        let _ = tokio::fs::remove_file(marker_path).await;
+    }
+}
+
+#[cfg(windows)]
+async fn send_via_ipc(ipc_path: &str, message: &str) -> Result<()> {
+    use tokio::io::AsyncWriteExt;
+    
+    // Try to connect to the named pipe
+    let client = ClientOptions::new()
+        .open(ipc_path)
+        .context("Failed to connect to daemon")?;
+
+    // Write the message
+    let (_, mut writer) = tokio::io::split(client);
+    writer.write_all(message.as_bytes()).await?;
+    writer.write_all(b"\n").await?;
+    writer.flush().await?;
+
+    Ok(())
+}
+
+// ============================================================================
+// Main daemon and command implementations
+// ============================================================================
+
 async fn run_daemon(identity_name: Option<String>, room: String, join_ticket: Option<String>) -> Result<()> {
     // Load or create identity
     let identity = load_or_create_identity(identity_name)?;
@@ -299,34 +548,9 @@ async fn run_daemon(identity_name: Option<String>, room: String, join_ticket: Op
 
     let sender = Arc::new(sender);
 
-    // Setup Unix socket
-    let socket_path = get_socket_path(&identity.name)?;
-    if socket_path.exists() {
-        tokio::fs::remove_file(&socket_path).await?;
-    }
-
-    let listener = UnixListener::bind(&socket_path)?;
-    print_system(&format!("listening on socket for '{}'", identity.name));
-
-    // Spawn socket handler
-    let sender_for_socket = sender.clone();
-    let identity_name = identity.name.clone();
-    let my_id_for_socket = my_id;
-    tokio::spawn(async move {
-        loop {
-            if let Ok((stream, _)) = listener.accept().await {
-                let sender = sender_for_socket.clone();
-                let name = identity_name.clone();
-                let id = my_id_for_socket;
-
-                tokio::spawn(async move {
-                    if let Err(e) = handle_socket_connection(stream, sender, &name, &id).await {
-                        eprintln!("Socket error: {}", e);
-                    }
-                });
-            }
-        }
-    });
+    // Setup IPC (Unix socket or Windows named pipe)
+    let ipc_path = get_ipc_path(&identity.name)?;
+    start_ipc_listener(&ipc_path, sender.clone(), identity.name.clone(), my_id).await?;
 
     print_system("ready! waiting for messages...");
     println!();
@@ -375,73 +599,59 @@ async fn run_daemon(identity_name: Option<String>, room: String, join_ticket: Op
     if let Err(e) = router.shutdown().await {
         eprintln!("Error during shutdown: {:?}", e);
     }
-    let _ = tokio::fs::remove_file(&socket_path).await;
+    
+    #[cfg(unix)]
+    cleanup_ipc(&ipc_path).await;
+    
+    #[cfg(windows)]
+    cleanup_ipc(&identity.name).await;
 
     print_system("disconnected");
     Ok(())
 }
 
-async fn handle_socket_connection(
-    stream: UnixStream,
-    sender: Arc<iroh_gossip::api::GossipSender>,
-    identity_name: &str,
-    node_id: &PublicKey,
-) -> Result<()> {
-    let mut reader = BufReader::new(stream);
-    let mut line = String::new();
-
-    while reader.read_line(&mut line).await? > 0 {
-        let message = line.trim().to_string();
-        if !message.is_empty() {
-            let chat_msg = ChatMessage {
-                from_name: identity_name.to_string(),
-                from_id: node_id.to_string(),
-                content: message.clone(),
-                timestamp: chrono::Utc::now().timestamp(),
-            };
-
-            let json = serde_json::to_vec(&chat_msg)?;
-            sender.broadcast(json.into()).await?;
-
-            print_message(identity_name, &node_id.to_string(), &message, true);
-        }
-        line.clear();
-    }
-
-    Ok(())
-}
-
 async fn send_message(identity_name: Option<String>, message: String) -> Result<()> {
-    // Find socket - either specified identity or find any running daemon
-    let socket_path = if let Some(name) = identity_name {
-        get_socket_path(&name)?
+    // Find IPC path - either specified identity or find any running daemon
+    let ipc_path = if let Some(name) = identity_name {
+        let path = get_ipc_path(&name)?;
+        if !is_daemon_running(&name) {
+            anyhow::bail!("Daemon not running for identity '{}'. Start it with: real-a2a daemon --identity {}", name, name);
+        }
+        path
     } else {
-        // Try to find any daemon socket
+        // Try to find any daemon
         let data_dir = get_data_dir()?;
         let mut found = None;
+        
         if let Ok(entries) = std::fs::read_dir(&data_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
+                let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+                
+                #[cfg(unix)]
                 if path.extension().map(|e| e == "sock").unwrap_or(false) {
-                    found = Some(path);
-                    break;
+                    // Extract identity name from socket filename
+                    if let Some(name) = filename.strip_prefix("daemon-").and_then(|s| s.strip_suffix(".sock")) {
+                        found = Some(get_ipc_path(name)?);
+                        break;
+                    }
+                }
+                
+                #[cfg(windows)]
+                if filename.starts_with("daemon-") && filename.ends_with(".running") {
+                    // Extract identity name from marker filename
+                    if let Some(name) = filename.strip_prefix("daemon-").and_then(|s| s.strip_suffix(".running")) {
+                        found = Some(get_ipc_path(name)?);
+                        break;
+                    }
                 }
             }
         }
+        
         found.context("No daemon running. Start one with: real-a2a daemon")?
     };
 
-    if !socket_path.exists() {
-        anyhow::bail!("Daemon not running for this identity. Start it with: real-a2a daemon --identity <name>");
-    }
-
-    let mut stream = UnixStream::connect(&socket_path)
-        .await
-        .context("Failed to connect to daemon")?;
-
-    stream.write_all(message.as_bytes()).await?;
-    stream.write_all(b"\n").await?;
-    stream.flush().await?;
+    send_via_ipc(&ipc_path, &message).await?;
 
     Ok(())
 }
@@ -482,8 +692,11 @@ async fn list_identities() -> Result<()> {
     } else {
         println!("{}", "Identities:".bold());
         for id in identities {
-            let socket_path = get_socket_path(&id.name)?;
-            let status = if socket_path.exists() { "running".green() } else { "stopped".dimmed() };
+            let status = if is_daemon_running(&id.name) { 
+                "running".green() 
+            } else { 
+                "stopped".dimmed() 
+            };
             println!("  {} [{}]", id.name.yellow(), status);
         }
     }

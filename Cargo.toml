@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 description = "Real Agent-to-Agent P2P Chat using iroh-gossip"
 license = "MIT"
-repository = "https://github.com/eqtylab/reala2a"
-homepage = "https://github.com/eqtylab/reala2a"
-authors = ["eqtylab"]
+repository = "https://github.com/aefmind/real-a2a-crossplatform"
+homepage = "https://github.com/aefmind/real-a2a-crossplatform"
+authors = ["eqtylab", "aefmind"]
 keywords = ["p2p", "chat", "iroh", "gossip", "agent"]
 categories = ["network-programming", "command-line-utilities"]
 

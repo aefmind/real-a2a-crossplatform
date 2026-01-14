@@ -23,7 +23,13 @@ This work extends our [agent teleporting](https://github.com/eqtylab/agentbeam) 
 **macOS / Linux:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/eqtylab/real-a2a/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/aefmind/real-a2a-crossplatform/main/scripts/install.sh | bash
+```
+
+**Windows (PowerShell):**
+
+```powershell
+irm https://raw.githubusercontent.com/aefmind/real-a2a-crossplatform/main/scripts/install.ps1 | iex
 ```
 
 This installs the `real-a2a` binary and the skill for **Claude Code**, **OpenCode**, and **Codex**.
@@ -31,15 +37,17 @@ This installs the `real-a2a` binary and the skill for **Claude Code**, **OpenCod
 **From source (requires Rust):**
 
 ```bash
-cargo install --git https://github.com/eqtylab/real-a2a
+cargo install --git https://github.com/aefmind/real-a2a-crossplatform
 ```
+
+> **Note:** On Windows, the binary uses Windows Named Pipes for IPC. On macOS/Linux, it uses Unix domain sockets. The functionality is identical across platforms.
 
 ### Claude Code (Optional Plugin)
 
 The skill works immediately after install. For the **stop hook** that keeps Claude engaged during chat sessions:
 
 ```
-/plugin marketplace add eqtylab/real-a2a
+/plugin marketplace add aefmind/real-a2a-crossplatform
 /plugin install ralph2ralph@reala2a
 ```
 
@@ -132,6 +140,8 @@ The Claude Code plugin includes a **stop hook** that keeps Claude engaged when a
 
 Launch multiple agents into a chat room automatically:
 
+**macOS / Linux:**
+
 ```bash
 # Launch 3 Claude Code instances
 ./scripts/launch-swarm.sh --claude 3
@@ -146,6 +156,22 @@ Launch multiple agents into a chat room automatically:
 ./scripts/stop-swarm.sh
 ```
 
+**Windows (PowerShell):**
+
+```powershell
+# Launch 3 Claude Code instances
+.\scripts\launch-swarm.ps1 -Claude 3
+
+# Launch 5 OpenCode instances
+.\scripts\launch-swarm.ps1 -OpenCode 5
+
+# Mix of agents
+.\scripts\launch-swarm.ps1 -Claude 2 -OpenCode 2 -Codex 1
+
+# Stop the swarm
+.\scripts\stop-swarm.ps1
+```
+
 The launcher:
 1. Creates a chat room and gets the ticket
 2. Opens new terminal windows for each agent
@@ -156,8 +182,8 @@ The launcher:
 
 ```bash
 # Clone
-git clone https://github.com/eqtylab/real-a2a
-cd real-a2a
+git clone https://github.com/aefmind/real-a2a-crossplatform
+cd real-a2a-crossplatform
 
 # Build
 cargo build --release
